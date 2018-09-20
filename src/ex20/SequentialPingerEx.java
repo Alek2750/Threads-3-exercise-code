@@ -7,10 +7,28 @@ package ex20;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
-public class SequentialPinger {
+public class SequentialPingerEx implements Callable<String> {
+    private String url;
+    
+    private SequentialPingerEx(String url) {
+        this.url = url;
+    }
+
 
     public static void main(String args[]) throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(10);
+        long start = System.nanoTime();
+
+        List<Future<String>> list = new ArrayList<Future<String>>();
 
         String[] hostList = {"http://crunchify.com", "http://yahoo.com",
             "http://www.ebay.com", "http://google.com",
@@ -27,19 +45,25 @@ public class SequentialPinger {
             "http://docs.oracle.com", "https://fronter.com",
             "http://imgur.com/", "http://www.imagemagick.org"
         };
-
+        
+        
         for (int i = 0; i < hostList.length; i++) {
+            Future<String> future = executor.submit(new SequentialPingerEx(hostList[i]));
+            //add Future to the list, we can get return value using Future
+            list.add(future);
 
-            String url = hostList[i];
-            String status = getStatus(url);
-
-            System.out.println(url + "\t\tStatus:" + status);
         }
-
+        for (Future<String> fut : list) {
+                System.out.println(fut.get());
+        }
+        //shut down the executor service now
+        executor.shutdown();
+        long slut = System.nanoTime();
+        System.out.println(slut - start);
     }
 
-    public static String getStatus(String url) throws IOException {
-
+    @Override
+    public String call() throws Exception {
         String result = "Error";
         try {
             URL siteURL = new URL(url);
@@ -58,7 +82,7 @@ public class SequentialPinger {
         } catch (Exception e) {
             result = "->Red<-";
         }
-        return result;
+        return url + ": " + result;
     }
 
 }
